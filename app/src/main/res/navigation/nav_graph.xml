@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/mainFragment">
+
+    <!-- 首页Fragment -->
+    <!-- 启动模式：栈顶复用（避免重复创建实例），保持数据的一致性-->
+    <fragment
+        android:id="@+id/mainFragment"
+        android:name="com.git.tiktok.android.ui.main.MainFragment"
+        android:label="首页"
+        android:launchMode="singleTop"
+        tools:layout="@layout/fragment_main" />
+
+    <!-- 消息Fragment -->
+    <fragment
+        android:id="@+id/messageFragment"
+        android:name="com.git.tiktok.android.ui.message.MessageFragment"
+        android:label="消息"
+        tools:layout="@layout/fragment_message" />
+
+    <!-- 个人中心Fragment -->
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="com.git.tiktok.android.ui.profile.ProfileFragment"
+        android:label="我"
+        tools:layout="@layout/fragment_profile" />
+
+    <!-- 推荐页Fragment -->
+    <fragment
+        android:id="@+id/recommendFragment"
+        android:name="com.git.tiktok.android.ui.recommend.RecommendFragment"
+        android:label="推荐"
+        tools:layout="@layout/fragment_recommend" />
+
+    <!-- 商城Fragment -->
+    <fragment
+        android:id="@+id/mallFragment"
+        android:name="com.git.tiktok.android.ui.mall.MallFragment"
+        android:label="商城"
+        tools:layout="@layout/fragment_mall" />
+
+    <!-- 直播Fragment -->
+    <fragment
+        android:id="@+id/liveFragment"
+        android:name="com.git.tiktok.android.ui.live.LiveFragment"
+        android:label="直播"
+        tools:layout="@layout/fragment_live" />
+
+</navigation>
