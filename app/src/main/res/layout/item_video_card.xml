@@ -26,12 +26,7 @@
             android:background="@android:color/darker_gray" 
             android:minHeight="200dp" /> <!-- 设置最小高度，避免图片未加载时布局塌陷 -->
         
-        <!-- 视频播放组件，高度自适应，与封面图片重叠 -->
-        <VideoView
-            android:id="@+id/videoView"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="@android:color/transparent" />
+
         
 
         

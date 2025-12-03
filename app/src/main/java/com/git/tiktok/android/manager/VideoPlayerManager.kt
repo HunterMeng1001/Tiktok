@@ -12,6 +12,10 @@ import com.google.android.exoplayer2.DefaultLoadControl
 
 /**
  * 视频播放管理器，封装ExoPlayer的初始化、播放、暂停和释放等操作
+ * 后续优化建议：
+ * 视频预加载：在视频播放前提前加载视频数据，减少播放延迟
+ * 视频缓存：使用ExoPlayer的缓存机制，避免重复加载视频数据
+ * 断电续播：在视频播放过程中，用户关闭应用或切换到其他应用，视频播放会暂停，用户再次打开应用后，视频会从上次暂停的位置继续播放
  */
 class VideoPlayerManager(private val context: Context) {
     
@@ -22,22 +26,30 @@ class VideoPlayerManager(private val context: Context) {
      * 初始化播放器
      */
     fun initPlayer(playerView: PlayerView, onTouchListener: View.OnTouchListener? = null) {
+        // 1. 关键修复：先释放旧的播放器实例，防止多个播放器同时播放
+        if (player != null) {
+            release()
+        }
+        
+        // 2. 保存PlayerView引用
         this.playerView = playerView
         
-        // 创建LoadControl，优化缓冲区设置
+        // 3. 创建LoadControl，优化缓冲区设置
+        // 资源都比较短，参数改小一点
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMs(
-                5000, // 最小缓冲时间，增加到5秒
-                15000, // 最大缓冲时间，增加到15秒
-                2000, // 播放前缓冲时间，增加到2秒
-                3000  // 重新缓冲时间，增加到3秒
+                1000, // 最小缓冲时间，增加到1秒
+                4000, // 最大缓冲时间，增加到4秒
+                1000, // 播放前缓冲时间，增加到1秒
+                1000  // 重新缓冲时间，确保不超过最小缓冲时间
             )
             .build()
         
-        // 创建不带缓存的DataSource.Factory
+        // 4. 创建不带缓存的DataSource.Factory
+        // 数据加载组件，用于从网络或本地加载视频数据
         val dataSourceFactory = DefaultDataSource.Factory(context)
         
-        // 创建Player实例
+        // 5. 创建Player实例
         val playerBuilder = SimpleExoPlayer.Builder(context)
             .setLoadControl(loadControl)
             .setMediaSourceFactory(
@@ -46,21 +58,21 @@ class VideoPlayerManager(private val context: Context) {
         
         player = playerBuilder.build()
         
-        // 设置PlayerView
+        // 6. 设置PlayerView
         playerView.player = player
         
-        // 禁用PlayerView的默认控制器，防止双击重新播放
+        // 7. 禁用PlayerView的默认控制器，防止双击重新播放
         playerView.useController = false
         
-        // 设置触摸监听器
+        // 8. 设置触摸监听器
         onTouchListener?.let {
             playerView.setOnTouchListener(it)
         }
         
-        // 设置循环播放
+        // 9. 设置循环播放
         player?.repeatMode = ExoPlayer.REPEAT_MODE_ONE
         
-        // 确保音频正常播放
+        // 10. 确保音频正常播放
         player?.volume = 1.0f // 设置音量为最大
         player?.playWhenReady = true // 准备好后自动播放
     }
@@ -68,26 +80,38 @@ class VideoPlayerManager(private val context: Context) {
     /**
      * 播放视频
      */
-    fun playVideo(videoUrl: String) {
+    fun playVideo(videoUrl: String): Boolean {
         try {
-            // 清理URL，去除可能存在的反引号
-            val cleanUrl = videoUrl.replace("`", "")
-            
-            // 创建MediaItem
-            val mediaItem = MediaItem.fromUri(cleanUrl)
-            
-            if (player == null) {
-                // 如果播放器未初始化，直接返回
-                return
+            // 1. 验证URL有效性
+            if (videoUrl.isEmpty() || !videoUrl.startsWith("http")) {
+                throw IllegalArgumentException("Invalid video URL: $videoUrl")
             }
             
-            // 设置MediaItem并准备播放器
+            // 2. 清理URL，去除可能存在的反引号
+            val cleanUrl = videoUrl.replace("`", "")
+            
+            // 3. 检查播放器状态
+            if (player == null) {
+                // 如果播放器未初始化，直接返回
+                return false
+            }
+            
+            // 4. 重置播放器状态
+            player?.stop()
+            player?.clearMediaItems()
+            
+            // 5. 创建MediaItem
+            val mediaItem = MediaItem.fromUri(cleanUrl)
+            
+            // 6. 设置MediaItem并准备播放器
             player?.setMediaItem(mediaItem)
             player?.prepare()
             player?.play()
+            
+            return true
         } catch (e: Exception) {
             e.printStackTrace()
-            // 处理URL解析错误
+            return false
         }
     }
     

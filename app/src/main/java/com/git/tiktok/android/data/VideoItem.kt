@@ -5,6 +5,11 @@ import android.os.Parcelable
 
 /**
  * 视频数据模型
+ * 用于存储视频相关信息，包括ID、标题、封面URL、视频URL、点赞数、评论数、分享数、用户名、头像URL、是否关注、是否点赞
+ * 后续优化建议：
+ * 1. 考虑添加视频时长字段，用于展示视频播放时间
+ * 2. 考虑添加视频播放进度字段，用于实现视频的 seekTo 功能
+ * 3. 考虑添加视频播放状态字段，用于判断视频是否正在播放
  * @property id 视频ID
  * @property title 视频标题
  * @property coverUrl 封面图片URL

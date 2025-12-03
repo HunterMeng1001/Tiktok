@@ -12,7 +12,6 @@ import android.view.animation.AnimationUtils
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
-import android.widget.VideoView
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.target.SimpleTarget
@@ -48,7 +47,6 @@ class VideoAdapter : RecyclerView.Adapter<VideoAdapter.VideoViewHolder>() {
      */
     class VideoViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val ivVideoCover: ImageView = itemView.findViewById(R.id.ivVideoCover)
-        val videoView: VideoView = itemView.findViewById(R.id.videoView)
         val tvVideoTitle: TextView = itemView.findViewById(R.id.tvVideoTitle)
         val ivLikeButton: ImageView = itemView.findViewById(R.id.ivLikeButton)
         val tvLikeCount: TextView = itemView.findViewById(R.id.tvLikeCount)
@@ -85,9 +83,6 @@ class VideoAdapter : RecyclerView.Adapter<VideoAdapter.VideoViewHolder>() {
             video.coverUrl
         }
         
-        // 隐藏VideoView，避免影响布局高度
-        holder.videoView.visibility = View.GONE
-        
         // 加载封面，使用centerCrop和adjustViewBounds实现自适应高度
         Glide.with(holder.itemView.context)
             .asBitmap()
@@ -120,20 +115,8 @@ class VideoAdapter : RecyclerView.Adapter<VideoAdapter.VideoViewHolder>() {
                     
                     // 设置图片
                     holder.ivVideoCover.setImageBitmap(resource)
-                    
-                    // 也设置VideoView的高度，保持一致
-                    val videoLayoutParams = holder.videoView.layoutParams
-                    videoLayoutParams.height = itemHeight.toInt()
-                    holder.videoView.layoutParams = videoLayoutParams
                 }
             })
-        
-
-        
-        // 视频播放逻辑
-        if (video.videoUrl.isNotEmpty()) {
-            setupVideoPlayback(holder, video)
-        }
         
         // 点赞按钮点击事件
         holder.ivLikeButton.setOnClickListener {
@@ -147,80 +130,11 @@ class VideoAdapter : RecyclerView.Adapter<VideoAdapter.VideoViewHolder>() {
         holder.ivVideoCover.setOnClickListener {
             onVideoClickListener?.onVideoClick(videoList, position)
         }
-        
-        // 实现单击屏幕暂停播放和双击点赞功能
-        holder.videoContainer.setOnTouchListener(object : View.OnTouchListener {
-            private var lastClickTime = 0L
-            private var clickCount = 0
-            
-            override fun onTouch(v: View?, event: MotionEvent?): Boolean {
-                if (event?.action == MotionEvent.ACTION_DOWN) {
-                    clickCount++
-                    val currentTime = System.currentTimeMillis()
-                    
-                    if (clickCount == 1) {
-                        // 第一次点击，延迟判断是单击还是双击
-                        Handler(Looper.getMainLooper()).postDelayed({
-                            if (clickCount == 1) {
-                                // 单击事件
-                                if (holder.videoView.isPlaying) {
-                            // 暂停播放
-                            holder.videoView.pause()
-                        } else {
-                            // 开始播放
-                            holder.videoView.start()
-                        }
-                            }
-                            clickCount = 0
-                        }, 300)
-                    } else if (clickCount == 2) {
-                        // 双击事件
-                        toggleLike(holder, video)
-                        showLikeAnimation(holder)
-                        clickCount = 0
-                    }
-                    
-                    lastClickTime = currentTime
-                }
-                return true
-            }
-        })
     }
 
     override fun getItemCount(): Int = videoList.size
 
-    /**
-     * 设置视频播放逻辑
-     */
-    private fun setupVideoPlayback(holder: VideoViewHolder, video: VideoItem) {
-        // 设置视频URL
-        holder.videoView.setVideoPath(video.videoUrl)
-        
-        // 确保音频正常播放
-        holder.videoView.setAudioAttributes(
-            android.media.AudioAttributes.Builder()
-                .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC)
-                .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
-                .build()
-        )
-        
-        // 视频播放完成回调
-        holder.videoView.setOnCompletionListener {
-            // 重置视频，准备重新播放
-            holder.videoView.seekTo(0)
-        }
-        
-        // 视频准备完成回调
-        holder.videoView.setOnPreparedListener {
-            // 确保音频正常播放
-            it.setAudioAttributes(
-                android.media.AudioAttributes.Builder()
-                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_MUSIC)
-                    .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
-                    .build()
-            )
-        }
-    }
+
 
     /**
      * 格式化数字，如1000 -> 1k

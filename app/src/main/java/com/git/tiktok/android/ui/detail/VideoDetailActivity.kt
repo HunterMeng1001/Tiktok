@@ -20,6 +20,11 @@ import com.google.android.exoplayer2.ui.PlayerView
 
 /**
  * 视频详情页Activity，用于全屏展示视频或图片内容
+ * 实现了视频的全屏播放、
+ * 手势交互（上下滑动切换视频、双击点赞、单击播放/暂停）、
+ * 视频播放的生命周期管理、
+ * 共享元素转场动画等功能
+ * 初为VideoView实现，目前已经用AI替换为ExoPlayer
  */
 class VideoDetailActivity : AppCompatActivity() {
 
@@ -32,6 +37,7 @@ class VideoDetailActivity : AppCompatActivity() {
     private lateinit var tvLikeCount: TextView
     private lateinit var tvCommentCount: TextView
     private lateinit var tvShareCount: TextView
+    //AI实现，glide加载并圆形裁剪
     private lateinit var ivAvatar: ImageView
     private lateinit var btnFollow: android.widget.Button
     private lateinit var ivLike: ImageView
@@ -90,6 +96,7 @@ class VideoDetailActivity : AppCompatActivity() {
     
     /**
      * 初始化UI组件引用
+     * 后续可以考虑用ViewBinding进行优化
      */
     private fun initViews() {
         playerView = findViewById(R.id.playerView)
@@ -109,6 +116,8 @@ class VideoDetailActivity : AppCompatActivity() {
     
     /**
      * 观察ViewModel变化，更新UI
+     * fix: 修复在切换视频时，点赞图标状态没有更新的问题
+     * fix: 双击点赞时重新播放视频
      */
     private fun observeViewModel() {
         viewModel.currentVideoItem.observe(this) {
@@ -157,7 +166,7 @@ class VideoDetailActivity : AppCompatActivity() {
         }
     }
 
-    // 双击检测相关
+    // 双击检测相关（ai）
     private var clickCount = 0
     private var lastClickTime = 0L
     private val DOUBLE_CLICK_TIMEOUT = 300L // 双击超时时间，毫秒
@@ -198,6 +207,7 @@ class VideoDetailActivity : AppCompatActivity() {
     
     /**
      * 处理触摸事件，主要用于传递给其他视图
+     * 兜底用，防止其他视图无法响应点击事件
      */
     override fun onTouchEvent(event: android.view.MotionEvent): Boolean {
         // 触摸事件已经在PlayerView的OnTouchListener中处理
@@ -208,9 +218,12 @@ class VideoDetailActivity : AppCompatActivity() {
      * 切换到下一个元素
      */
     private fun switchToNextItem() {
+        // 1. 释放旧资源
+        videoPlayerManager.release()
+        
+        // 2. 切换视频
         if (viewModel.switchToNextVideo()) {
-            // 切换前先释放媒体控制器，防止资源泄漏和冲突
-            videoPlayerManager.release()
+            // 切换成功，showContent()会被自动调用
         }
     }
     
@@ -218,9 +231,12 @@ class VideoDetailActivity : AppCompatActivity() {
      * 切换到上一个元素
      */
     private fun switchToPreviousItem() {
+        // 1. 释放旧资源
+        videoPlayerManager.release()
+        
+        // 2. 切换视频
         if (viewModel.switchToPreviousVideo()) {
-            // 切换前先释放媒体控制器，防止资源泄漏和冲突
-            videoPlayerManager.release()
+            // 切换成功，showContent()会被自动调用
         }
     }
     
@@ -268,30 +284,9 @@ class VideoDetailActivity : AppCompatActivity() {
     }
 
     /**
-     * 展示视频内容
+     * 为PlayerView添加触摸监听器，处理点击和滑动事件
      */
-    private fun showVideo(videoUrl: String) {
-        // 显示PlayerView，隐藏ImageView
-        playerView.visibility = View.VISIBLE
-        ivImage.visibility = View.GONE
-        
-        // 先释放旧的播放器资源
-        videoPlayerManager.release()
-        
-        // 初始化播放器，不设置OnTouchListener，避免覆盖OnClickListener
-        videoPlayerManager.initPlayer(playerView)
-        
-        // 播放视频
-        videoPlayerManager.playVideo(videoUrl)
-        
-        // 重置触摸相关状态
-        clickCount = 0
-        lastClickTime = 0L
-        isScrolling = false
-        // 移除所有延迟任务
-        clickHandler.removeCallbacksAndMessages(null)
-        
-        // 为PlayerView添加触摸监听器，处理点击和滑动事件
+    private fun setupPlayerTouchListener() {
         playerView.setOnTouchListener { _, event ->
             when (event.action) {
                 // 触摸开始
@@ -350,6 +345,41 @@ class VideoDetailActivity : AppCompatActivity() {
                 else -> return@setOnTouchListener false
             }
         }
+    }
+    
+    /**
+     * 展示视频内容
+     */
+    private fun showVideo(videoUrl: String) {
+        // 1. 确保视图状态正确
+        playerView.visibility = View.VISIBLE
+        ivImage.visibility = View.GONE
+        
+        // 2. 重置触摸相关状态
+        clickCount = 0
+        lastClickTime = 0L
+        isScrolling = false
+        // 移除所有延迟任务
+        clickHandler.removeCallbacksAndMessages(null)
+        
+        // 3. 初始化播放器
+        videoPlayerManager.initPlayer(playerView)
+        
+        // 4. 播放视频并检查结果
+        val playSuccess = videoPlayerManager.playVideo(videoUrl)
+        if (!playSuccess) {
+            // 播放失败，显示错误信息或封面图
+            ivImage.visibility = View.VISIBLE
+            playerView.visibility = View.GONE
+            // 尝试加载封面图作为备选
+            Glide.with(this)
+                .load(viewModel.currentVideoItem.value?.coverUrl)
+                .centerCrop()
+                .into(ivImage)
+        }
+        
+        // 5. 设置触摸监听器
+        setupPlayerTouchListener()
     }
     
     /**
