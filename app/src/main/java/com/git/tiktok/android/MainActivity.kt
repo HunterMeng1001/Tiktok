@@ -20,10 +20,7 @@ class MainActivity : AppCompatActivity() {
 
         // 配置底部导航栏
         val bottomNavigationView = findViewById<BottomNavigationView>(R.id.bottomNavigationView)
-        // 遍历所有菜单项，移除图标（实现纯文字导航）
-        bottomNavigationView.menu.forEach { item ->
-            item.setIcon(null)
-        }
+
         
         // 配置底部导航栏与导航控制器的联动
         bottomNavigationView.setupWithNavController(navController)
